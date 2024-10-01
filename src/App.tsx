@@ -183,7 +183,7 @@ export default function App() {
 
   useEffect(() => {
     // Update "Explore" node with click handler
-    setNodes((nds) =>
+    setNodes((nds: Node[]) =>
       nds.map((node: Node) =>
         node.id === 'explore'
           ? {

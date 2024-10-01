@@ -1,3 +1,5 @@
+import { Node } from '@xyflow/react'; // Add this import at the top
+import { BackgroundVariant } from '@xyflow/react'; // Make sure BackgroundVariant is imported
 import { useCallback, useEffect, useState } from 'react';
 import {
   ReactFlow,
@@ -103,8 +105,6 @@ export default function App() {
       setEdges((eds) => eds.filter((edge) => edge.source !== currentViewMealsNodeId));
     }
 
-    // Fetch meals for the selected category
-    const meals = await fetchMealsByCategory(categoryId);
 
     // Create the new View Meals node
     const newViewMealsNodeId = `viewMeals-${categoryId}`;
@@ -184,7 +184,7 @@ export default function App() {
   useEffect(() => {
     // Update "Explore" node with click handler
     setNodes((nds) =>
-      nds.map((node) =>
+      nds.map((node: Node) =>
         node.id === 'explore'
           ? {
               ...node,
@@ -216,7 +216,7 @@ export default function App() {
       >
         <Controls />
         <MiniMap />
-        <Background variant="dots" gap={12} size={1} />
+        <Background variant={BackgroundVariant.Dots} gap={12} size={1} /> 
       </ReactFlow>
     </div>
   );

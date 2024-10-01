@@ -29,12 +29,15 @@ Meal Explorer is a dynamic React application that utilizes the React Flow librar
    ```bash
    git clone https://github.com/kunalg3/food-node-app.git
    cd food-node-app
+   ```
 2. Install dependencies:
   ```bash
     npm install
+    ```
 3. Start the development server:
   ```bash
    npm run dev
+   ```
 4. Open your browser and navigate to http://localhost:3000/ or any other port
 
 ### Usage

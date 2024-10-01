@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   ReactFlow,
   MiniMap,
@@ -34,7 +34,8 @@ const initialNodes = [
   },
 ];
 
-const initialEdges = [];
+const initialEdges: any[] = []; // Define the type for initialEdges
+
 
 const fetchCategories = async () => {
   const response = await fetch('https://www.themealdb.com/api/json/v1/1/categories.php');
@@ -42,7 +43,7 @@ const fetchCategories = async () => {
   return data.categories.slice(0, 5); // Get top-5 categories
 };
 
-const fetchMealsByCategory = async (categoryId) => {
+const fetchMealsByCategory = async (categoryId:string) => {
   const response = await fetch(`https://www.themealdb.com/api/json/v1/1/filter.php?c=${categoryId}`);
   const data = await response.json();
   return data.meals ? data.meals.slice(0, 5) : []; // Get top-5 meals for the category
@@ -51,17 +52,17 @@ const fetchMealsByCategory = async (categoryId) => {
 export default function App() {
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
-  const [currentViewMealsNodeId, setCurrentViewMealsNodeId] = useState(null); // Track the current View Meals node ID
+  const [currentViewMealsNodeId, setCurrentViewMealsNodeId] = useState<string | null>(null); // Track the current View Meals node ID
 
   const onConnect = useCallback(
-    (params) => setEdges((eds) => addEdge(params, eds)),
+    (params:any) => setEdges((eds) => addEdge(params, eds)),
     [setEdges],
   );
 
   const handleExploreClick = useCallback(async () => {
     // Fetch top-5 categories and create nodes
     const categories = await fetchCategories();
-    const newNodes = categories.map((category, index) => ({
+    const newNodes = categories.map((category:any, index:number) => ({
       id: category.idCategory,
       position: { x: 200, y: 100 + index * 100 }, // Vertical arrangement starting from (200, 100)
       data: {
@@ -95,7 +96,7 @@ export default function App() {
     setEdges((eds) => [...eds, ...newEdges]);
   }, [setNodes, setEdges]);
 
-  const handleCategoryClick = useCallback(async (categoryId) => {
+  const handleCategoryClick = useCallback(async (categoryId:string) => {
     // Remove the previous View Meals node if it exists
     if (currentViewMealsNodeId) {
       setNodes((nds) => nds.filter((node) => node.id !== currentViewMealsNodeId));
@@ -145,12 +146,12 @@ export default function App() {
     ]);
   }, [setNodes, setEdges, currentViewMealsNodeId]);
 
-  const handleViewMealsClick = useCallback(async (categoryId) => {
+  const handleViewMealsClick = useCallback(async (categoryId:string) => {
     // Fetch meals for the selected category
-    const meals = await fetchMealsByCategory(categoryId);
+    const meals: any[] = await fetchMealsByCategory(categoryId); // Ensure meals 
 
     // Create meal nodes and edges
-    const mealNodes = meals.map((meal, index) => ({
+    const mealNodes = meals.map((meal:any, index:number) => ({
       id: meal.idMeal,
       position: { x: 600, y: 100 + index * 100 }, // Vertical arrangement for meal nodes
       data: {

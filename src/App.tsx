@@ -1,74 +1,128 @@
-import React, { useState, useCallback } from 'react';
-import ReactFlow, { addEdge, applyNodeChanges, applyEdgeChanges, Node, Edge } from 'react-flow-renderer';
-import 'react-flow-renderer/dist/style.css'; // Import ReactFlow styles
-import axios from 'axios';
-import './App.css'; // Import Tailwind CSS
+import React, { useCallback, useEffect, useState } from 'react';
+import {
+  ReactFlow,
+  MiniMap,
+  Controls,
+  Background,
+  useNodesState,
+  useEdgesState,
+  addEdge,
+} from '@xyflow/react';
 
-const initialNodes: Node[] = [
+import '@xyflow/react/dist/style.css';
+
+const initialNodes = [
   {
-    id: '1',
-    data: { label: 'Explore' },
-    position: { x: 250, y: 0 },
-    type: 'input',
+    id: 'explore',
+    position: { x: 50, y: 200 }, // Position for the "Explore" node on the left
+    data: {
+      label: (
+        <button
+          className="px-4 py-2 bg-blue-500 text-white rounded-lg shadow-md hover:bg-blue-600 transition"
+        >
+          Explore
+        </button>
+      ),
+    },
+    style: {
+      borderRadius: '12px',
+      padding: '10px',
+      backgroundColor: '#F9FAFB',
+      border: '1px solid #E5E7EB',
+      boxShadow: '0 2px 10px rgba(0, 0, 0, 0.1)',
+    },
   },
 ];
+const initialEdges = [];
 
-const App: React.FC = () => {
-  const [nodes, setNodes] = useState<Node[]>(initialNodes);
-  const [edges, setEdges] = useState<Edge[]>([]);
-
-  const fetchTopCategories = async () => {
-    try {
-      const response = await axios.get('https://www.themealdb.com/api/json/v1/1/categories.php');
-      const categories = response.data.categories.slice(0, 5).map((cat: any, index: number) => ({
-        id: `cat-${index}`,
-        data: { label: cat.strCategory },
-        position: { x: 250 * (index + 1), y: 100 },
-        type: 'default',
-      }));
-      setNodes((nds) => [...nds, ...categories]);
-    } catch (error) {
-      console.error('Error fetching categories:', error);
-    }
-  };
-
-  const onNodeClick = (event: React.MouseEvent, node: Node) => {
-    if (node.id === '1') {
-      fetchTopCategories();
-    } else {
-      console.log('Node clicked:', node);
-    }
-  };
-
-  const onNodesChange = useCallback(
-    (changes) => setNodes((nds) => applyNodeChanges(changes, nds)),
-    [setNodes]
-  );
-  const onEdgesChange = useCallback(
-    (changes) => setEdges((eds) => applyEdgeChanges(changes, eds)),
-    [setEdges]
-  );
-  const onConnect = useCallback(
-    (params) => setEdges((eds) => addEdge(params, eds)),
-    [setEdges]
-  );
-
-  return (
-    <div className="w-full h-screen flex justify-center items-center">
-      <div className="w-full h-full" style={{ height: '100vh', width: '100vw' }}>
-        <ReactFlow
-          nodes={nodes}
-          edges={edges}
-          onNodesChange={onNodesChange}
-          onEdgesChange={onEdgesChange}
-          onConnect={onConnect}
-          onNodeClick={onNodeClick}
-          fitView
-          style={{ backgroundColor: '#FAFAFA' }}
-        />
-      </div>
-    </div>
-  );
+const fetchCategories = async () => {
+  const response = await fetch('https://www.themealdb.com/api/json/v1/1/categories.php');
+  const data = await response.json();
+  return data.categories.slice(0, 5); // Get top-5 categories
 };
 
-export default App;
+export default function App() {
+  const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
+  const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
+  const [isClicked, setIsClicked] = useState(false);
+
+  const onConnect = useCallback(
+    (params) => setEdges((eds) => addEdge(params, eds)),
+    [setEdges],
+  );
+
+  const handleExploreClick = useCallback(async () => {
+    if (isClicked) return; // Prevent multiple clicks
+
+    const categories = await fetchCategories();
+    const newNodes = categories.map((category, index) => ({
+      id: category.idCategory,
+      position: { x: 200, y: 100 + index * 100 }, // Vertical arrangement starting from (200, 100)
+      data: {
+        label: (
+          <div className="p-2 bg-green-500 text-white rounded-md shadow-md hover:bg-green-600 transition">
+            {category.strCategory}
+          </div>
+        ),
+      },
+      style: {
+        borderRadius: '12px',
+        padding: '10px',
+        backgroundColor: '#F9FAFB',
+        border: '1px solid #E5E7EB',
+        boxShadow: '0 2px 10px rgba(0, 0, 0, 0.1)',
+      },
+    }));
+
+    setNodes((nds) => [...nds, ...newNodes]);
+    const newEdges = newNodes.map((node) => ({
+      id: `e-explore-${node.id}`,
+      source: 'explore',
+      target: node.id,
+      type: 'smoothstep',
+    }));
+
+    setEdges((eds) => [...eds, ...newEdges]);
+    setIsClicked(true);
+  }, [setNodes, setEdges, isClicked]);
+
+  useEffect(() => {
+    // Update "Explore" node with click handler
+    setNodes((nds) =>
+      nds.map((node) =>
+        node.id === 'explore'
+          ? {
+              ...node,
+              data: {
+                label: (
+                  <button
+                    className="px-4 py-2 bg-blue-500 text-white rounded-lg shadow-md hover:bg-blue-600 transition"
+                    onClick={handleExploreClick}
+                  >
+                    Explore
+                  </button>
+                ),
+              },
+            }
+          : node
+      )
+    );
+  }, [setNodes, handleExploreClick]);
+
+  return (
+    <div className="w-screen h-screen bg-gray-100">
+      <ReactFlow
+        nodes={nodes}
+        edges={edges}
+        onNodesChange={onNodesChange}
+        onEdgesChange={onEdgesChange}
+        onConnect={onConnect}
+        fitView
+      >
+        <Controls />
+        <MiniMap />
+        <Background variant="dots" gap={12} size={1} />
+      </ReactFlow>
+    </div>
+  );
+}

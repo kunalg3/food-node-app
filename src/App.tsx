@@ -33,6 +33,7 @@ const initialNodes = [
     },
   },
 ];
+
 const initialEdges = [];
 
 const fetchCategories = async () => {
@@ -41,10 +42,16 @@ const fetchCategories = async () => {
   return data.categories.slice(0, 5); // Get top-5 categories
 };
 
+const fetchMealsByCategory = async (categoryId) => {
+  const response = await fetch(`https://www.themealdb.com/api/json/v1/1/filter.php?c=${categoryId}`);
+  const data = await response.json();
+  return data.meals ? data.meals.slice(0, 5) : []; // Get top-5 meals for the category
+};
+
 export default function App() {
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
-  const [isClicked, setIsClicked] = useState(false);
+  const [currentViewMealsNodeId, setCurrentViewMealsNodeId] = useState(null); // Track the current View Meals node ID
 
   const onConnect = useCallback(
     (params) => setEdges((eds) => addEdge(params, eds)),
@@ -52,15 +59,17 @@ export default function App() {
   );
 
   const handleExploreClick = useCallback(async () => {
-    if (isClicked) return; // Prevent multiple clicks
-
+    // Fetch top-5 categories and create nodes
     const categories = await fetchCategories();
     const newNodes = categories.map((category, index) => ({
       id: category.idCategory,
       position: { x: 200, y: 100 + index * 100 }, // Vertical arrangement starting from (200, 100)
       data: {
         label: (
-          <div className="p-2 bg-green-500 text-white rounded-md shadow-md hover:bg-green-600 transition">
+          <div
+            className="p-2 bg-green-500 text-white rounded-md shadow-md hover:bg-green-600 transition cursor-pointer"
+            onClick={() => handleCategoryClick(category.idCategory)}
+          >
             {category.strCategory}
           </div>
         ),
@@ -74,17 +83,94 @@ export default function App() {
       },
     }));
 
+    // Update nodes and edges
     setNodes((nds) => [...nds, ...newNodes]);
     const newEdges = newNodes.map((node) => ({
       id: `e-explore-${node.id}`,
       source: 'explore',
       target: node.id,
-      type: 'smoothstep',
+      type: 'smoothstep', // Use smoothstep for a curved edge effect
     }));
 
     setEdges((eds) => [...eds, ...newEdges]);
-    setIsClicked(true);
-  }, [setNodes, setEdges, isClicked]);
+  }, [setNodes, setEdges]);
+
+  const handleCategoryClick = useCallback(async (categoryId) => {
+    // Remove the previous View Meals node if it exists
+    if (currentViewMealsNodeId) {
+      setNodes((nds) => nds.filter((node) => node.id !== currentViewMealsNodeId));
+      setEdges((eds) => eds.filter((edge) => edge.source !== currentViewMealsNodeId));
+    }
+
+    // Fetch meals for the selected category
+    const meals = await fetchMealsByCategory(categoryId);
+
+    // Create the new View Meals node
+    const newViewMealsNodeId = `viewMeals-${categoryId}`;
+    const newViewMealsNode = {
+      id: newViewMealsNodeId,
+      position: { x: 400, y: 100 }, // Position next to the selected category
+      data: {
+        label: (
+          <div className="p-2 bg-yellow-500 text-white rounded-md shadow-md hover:bg-yellow-600 transition">
+            View Meals
+          </div>
+        ),
+      },
+      style: {
+        borderRadius: '12px',
+        padding: '10px',
+        backgroundColor: '#F9FAFB',
+        border: '1px solid #E5E7EB',
+        boxShadow: '0 2px 10px rgba(0, 0, 0, 0.1)',
+      },
+    };
+
+    // Update nodes with the new View Meals node
+    setNodes((nds) => [...nds, newViewMealsNode]);
+    setCurrentViewMealsNodeId(newViewMealsNodeId); // Store the current View Meals node ID
+
+    // Create edges from category to View Meals
+    setEdges((eds) => [
+      ...eds,
+      {
+        id: `e-${categoryId}-viewMeals`,
+        source: categoryId,
+        target: newViewMealsNodeId,
+        type: 'smoothstep',
+      },
+    ]);
+
+    // Create meal nodes and edges
+    const mealNodes = meals.map((meal, index) => ({
+      id: meal.idMeal,
+      position: { x: 600, y: 100 + index * 100 }, // Vertical arrangement for meal nodes
+      data: {
+        label: (
+          <div className="p-2 bg-red-500 text-white rounded-md shadow-md hover:bg-red-600 transition">
+            {meal.strMeal}
+          </div>
+        ),
+      },
+      style: {
+        borderRadius: '12px',
+        padding: '10px',
+        backgroundColor: '#F9FAFB',
+        border: '1px solid #E5E7EB',
+        boxShadow: '0 2px 10px rgba(0, 0, 0, 0.1)',
+      },
+    }));
+
+    setNodes((nds) => [...nds, ...mealNodes]);
+    const newMealEdges = mealNodes.map((node) => ({
+      id: `e-viewMeals-${node.id}`,
+      source: newViewMealsNodeId,
+      target: node.id,
+      type: 'smoothstep',
+    }));
+
+    setEdges((eds) => [...eds, ...newMealEdges]);
+  }, [setNodes, setEdges, currentViewMealsNodeId]);
 
   useEffect(() => {
     // Update "Explore" node with click handler

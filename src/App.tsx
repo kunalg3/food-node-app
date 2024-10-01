@@ -112,7 +112,10 @@ export default function App() {
       position: { x: 400, y: 100 }, // Position next to the selected category
       data: {
         label: (
-          <div className="p-2 bg-yellow-500 text-white rounded-md shadow-md hover:bg-yellow-600 transition">
+          <div
+            className="p-2 bg-yellow-500 text-white rounded-md shadow-md hover:bg-yellow-600 transition cursor-pointer"
+            onClick={() => handleViewMealsClick(categoryId)} // Add click handler to View Meals node
+          >
             View Meals
           </div>
         ),
@@ -140,6 +143,11 @@ export default function App() {
         type: 'smoothstep',
       },
     ]);
+  }, [setNodes, setEdges, currentViewMealsNodeId]);
+
+  const handleViewMealsClick = useCallback(async (categoryId) => {
+    // Fetch meals for the selected category
+    const meals = await fetchMealsByCategory(categoryId);
 
     // Create meal nodes and edges
     const mealNodes = meals.map((meal, index) => ({
@@ -164,13 +172,13 @@ export default function App() {
     setNodes((nds) => [...nds, ...mealNodes]);
     const newMealEdges = mealNodes.map((node) => ({
       id: `e-viewMeals-${node.id}`,
-      source: newViewMealsNodeId,
+      source: `viewMeals-${categoryId}`,
       target: node.id,
       type: 'smoothstep',
     }));
 
     setEdges((eds) => [...eds, ...newMealEdges]);
-  }, [setNodes, setEdges, currentViewMealsNodeId]);
+  }, [setNodes, setEdges]);
 
   useEffect(() => {
     // Update "Explore" node with click handler
